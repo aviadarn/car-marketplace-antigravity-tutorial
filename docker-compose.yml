@@ -1,0 +1,87 @@
+services:
+  db:
+    image: mongo:latest
+    container_name: elite_drive_db
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME:-admin}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD:-password123}
+    ports:
+      - "27017:27017"
+    volumes:
+      - luxury_car_data:/data/db
+    healthcheck:
+      test: [ "CMD", "mongosh", "--eval", "db.adminCommand('ping')" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - elite-net
+
+  mongo-express:
+    image: mongo-express
+    container_name: elite_drive_mongo_express
+    restart: always
+    ports:
+      - "8081:8081"
+    environment:
+      ME_CONFIG_MONGODB_ADMINUSERNAME: ${MONGO_INITDB_ROOT_USERNAME:-admin}
+      ME_CONFIG_MONGODB_ADMINPASSWORD: ${MONGO_INITDB_ROOT_PASSWORD:-password123}
+      ME_CONFIG_MONGODB_SERVER: db
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - elite-net
+
+  api:
+    build: ./api
+    container_name: elite_drive_api
+    restart: always
+    ports:
+      - "5001:5000"
+    environment:
+      MONGO_URI: mongodb://${MONGO_INITDB_ROOT_USERNAME:-admin}:${MONGO_INITDB_ROOT_PASSWORD:-password123}@db:27017/
+      FLASK_APP: app.py
+      FLASK_ENV: development
+    volumes:
+      - ./tests:/tests
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - elite-net
+
+  ui:
+    build: ./ui
+    container_name: elite_drive_ui
+    restart: always
+    ports:
+      - "3000:3000"
+    depends_on:
+      api:
+        condition: service_started
+    networks:
+      - elite-net
+
+  test-runner:
+    build: ./tests
+    container_name: elite_drive_test_runner
+    volumes:
+      - ./tests:/tests
+    depends_on:
+      ui:
+        condition: service_started
+      api:
+        condition: service_started
+    networks:
+      - elite-net
+    profiles:
+      - testing
+
+volumes:
+  luxury_car_data:
+
+
+networks:
+  elite-net:
+    driver: bridge
