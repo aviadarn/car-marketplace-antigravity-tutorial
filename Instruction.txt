@@ -1,189 +1,103 @@
-# Elite Drive - Luxury Car Marketplace
-# Antigravity AI Prompt Sequence
+You are an expert full-stack developer building "Elite Drive" - a luxury car marketplace application using Docker, MongoDB, Flask, and React.
 
-Use the following prompts in sequence with Antigravity to build the complete application.
+CONTEXT:
+This is a complete production-ready application with:
+- MongoDB database for storing luxury car inventory, customers, and test drive bookings
+- Flask REST API backend with comprehensive endpoints
+- Premium dark-themed React frontend with Tailwind CSS
+- End-to-end testing with Playwright
+- Docker containerization for all services
 
----
+TECHNICAL STACK:
+- Backend: Python 3.11, Flask, Flask-CORS, PyMongo
+- Frontend: React 18, Vite, Tailwind CSS, Lucide-React icons
+- Database: MongoDB with Mongo Express admin interface
+- Testing: Python requests library for API tests, Playwright for E2E tests
+- Infrastructure: Docker Compose with health checks and service dependencies
 
-## PROMPT 1: Docker Infrastructure
+ARCHITECTURE:
+1. Docker Infrastructure (docker-compose.yml):
+   - db: MongoDB with persistent volume "luxury_car_data", health check enabled
+   - mongo-express: Database GUI accessible on port 8081
+   - api: Flask service on port 5000, depends on database health
+   - ui: React service on port 3000, depends on API availability
+   - test-runner: Playwright service for E2E testing
+   - Network: All services on "elite-net" shared network
+   - Environment: MongoDB credentials in .env file (MONGO_INITDB_ROOT_USERNAME, MONGO_INITDB_ROOT_PASSWORD)
 
-```
-Create a docker-compose.yml for a luxury car marketplace called "Elite Drive" with:
+2. Database Schema (MongoDB Collections):
+   - cars: Luxury vehicles (Ferrari SF90 Stradale $625k, Porsche 911 GT3 $180k, Lamborghini Revuelto $600k, Aston Martin DBS, Tesla Model S Plaid)
+   - customers: Israeli customer profiles (Yossi Levi, David Mizrahi, Moshe Biton, Sarah Ashkenazi)
+   - showroom_schedules: Test drive time slots (9:00, 10:00, 11:00, 14:00, 15:00, 16:00)
+   - test_drives: Booking records linking customers to cars with scheduled times
+   - service_history: Maintenance records with next_service_due alerts
 
-Services:
-- db: MongoDB latest with a healthcheck, volume "luxury_car_data" for persistence
-- mongo-express: Database GUI on port 8081, depends on db
-- api: Flask service built from ./api/Dockerfile on port 5000, depends on db health
-- ui: React service built from ./ui/Dockerfile on port 3000, depends on api
+3. Flask API Structure (/api):
+   - app.py: Main Flask application with CORS enabled
+   - seed_db.py: Database population script
+   - test_endpoints.py: API validation tests
+   - requirements.txt: flask, flask-cors, pymongo
+   - Dockerfile: python:3.11-slim base, direct package installation (no venv), runs on 0.0.0.0:5000
+   - MongoDB Connection: mongodb://root:rootpassword@db:27017/
 
-Configuration:
-- Create a .env file for MongoDB credentials (MONGO_INITDB_ROOT_USERNAME, MONGO_INITDB_ROOT_PASSWORD)
-- Use a shared network called "elite-net"
-- The API should connect to MongoDB using "db" as the hostname
+   API Endpoints:
+   - GET /cars: List all luxury vehicles
+   - GET /cars/brand/<brand>: Filter by brand (case-insensitive)
+   - GET /schedules/car/<car_id>: Available time slots for specific car
+   - POST /book-test-drive: Create booking (body: car_id, customer_id, slot_time)
+   - GET /customers/<id>/history: Customer's booking history
 
-Do NOT use any Python virtual environments - install packages directly in containers.
-```
+4. React Frontend (/ui):
+   - Dockerfile: node:18-alpine base, npm install, npm start
+   - Build Tool: Vite with React template
+   - Styling: Tailwind CSS with premium dark theme
+   - API Proxy: Configured to http://localhost:5000
 
----
+   Design System:
+   - Colors: Deep black #0a0a0a, charcoal #1a1a1a, silver #c0c0c0, gold highlights #d4af37
+   - Typography: Inter font from Google Fonts
+   - Icons: lucide-react (Car, Key, Calendar, ShieldCheck, Clock)
 
-## PROMPT 2: Database Seeding
+   Components:
+   - Navbar: Logo, Gallery link, Dashboard link with premium styling
+   - Car Gallery: Responsive card grid with images, specs, pricing, "View Details" CTA
+   - Vehicle Detail Page: Hero image, full specifications, time slot selection grid, "Request Reservation" button
+   - Booking Modal: Multi-step flow (customer selection → confirmation → success message)
+   - Customer Dashboard: Upcoming bookings list with booking details
 
-```
-Create a seed_db.py script in the /api folder that populates MongoDB with luxury car data.
+5. Testing Infrastructure:
+   - API Tests (test_endpoints.py): Validates all endpoints return correct status codes and data
+   - E2E Tests (/tests-e2e): Playwright tests for visibility, API integration, booking flow, responsive design
+   - Test Runner: Containerized Playwright service with UI dependency
 
-Collections needed:
-- cars: Ferrari SF90 Stradale ($625,000), Porsche 911 GT3 ($180,000), Lamborghini Revuelto ($600,000), Aston Martin DBS, Tesla Model S Plaid
-- customers: Use Israeli names - Yossi Levi, David Mizrahi, Moshe Biton, Sarah Ashkenazi
-- showroom_schedules: Available time slots for test drives (9:00, 10:00, 11:00, 14:00, 15:00, 16:00)
-- test_drives: Link customers to cars they've booked
-- service_history: Some cars should have next_service_due = true to trigger UI alerts
+IMPLEMENTATION REQUIREMENTS:
+- NO Python virtual environments - install packages directly in containers
+- All services must use health checks and proper dependency ordering
+- Frontend must be fully responsive with mobile-first approach
+- All API responses must include proper error handling
+- Database connections must use internal Docker network hostnames
+- Test suites must provide clear PASS/FAIL output
 
-Run with: docker compose exec api python seed_db.py
-```
+OPERATIONAL COMMANDS:
+Build and Start:
+  docker-compose up --build -d
 
----
+Database Setup:
+  docker compose exec api python seed_db.py
 
-## PROMPT 3: Flask API
+Testing:
+  docker compose exec api python test_endpoints.py
+  docker compose run --rm test-runner npx playwright test
 
-```
-Build a Flask REST API in /api with the following structure:
+Monitoring:
+  docker-compose logs -f api
+  docker-compose logs -f ui
 
-Files:
-- app.py: Main Flask application
-- requirements.txt: flask, flask-cors, pymongo
-- Dockerfile: python:3.11-slim base, install requirements directly (no venv), run with flask run --host=0.0.0.0
+QUALITY STANDARDS:
+- All tests must pass before considering the application complete
+- UI must match the premium dark theme specifications exactly
+- API responses must be consistent and well-structured
+- Error messages must be user-friendly and informative
+- Code must be production-ready with no placeholder comments
 
-Endpoints:
-- GET /cars - List all vehicles
-- GET /cars/brand/<brand> - Filter cars by brand (case-insensitive)
-- GET /schedules/car/<car_id> - Get available time slots for a specific car
-- POST /book-test-drive - Book a test drive (body: car_id, customer_id, slot_time)
-- GET /customers/<id>/history - Get a customer's booking history
-
-Enable Flask-CORS for all routes. Connect to MongoDB using: mongodb://root:rootpassword@db:27017/
-```
-
----
-
-## PROMPT 4: React Frontend
-
-```
-Build a premium React frontend in /ui for the Elite Drive luxury car marketplace.
-
-Structure:
-- Dockerfile: node:18-alpine base, npm install, npm start
-- Use Vite or Create React App
-- Tailwind CSS for styling
-
-Design Requirements:
-- "Premium Dark" theme: Deep black (#0a0a0a), charcoal (#1a1a1a), silver accents (#c0c0c0), gold highlights (#d4af37)
-- Typography: Inter or similar premium font from Google Fonts
-
-Components:
-1. Navbar: Logo, "Gallery" link, "Dashboard" link
-2. Car Gallery: Card grid with car image, brand, model, price, "View Details" button
-3. Vehicle Detail Page: Large image, specs, available time slots grid, "Request Reservation" button
-4. Booking Modal: Customer selection, confirmation step, success message
-5. Customer Dashboard: List of upcoming bookings
-
-Icons: Use lucide-react (Car, Key, Calendar, ShieldCheck, Clock)
-
-API calls should go to http://localhost:5000 (or use a proxy in development)
-```
-
----
-
-## PROMPT 5: API Testing
-
-```
-Create test_endpoints.py in the /api folder to verify the API works correctly.
-
-Tests to include:
-- GET /cars returns 200 and a list of cars
-- GET /cars/brand/Ferrari returns only Ferrari vehicles
-- GET /schedules/car/<valid_id> returns available slots
-- POST /book-test-drive with valid data returns success
-- GET /customers/<valid_id>/history returns booking history
-
-Use the requests library. Print clear PASS/FAIL messages.
-
-Run with: docker compose exec api python test_endpoints.py
-
-If any test fails, fix the API code and re-run until all tests pass.
-```
-
----
-
-## PROMPT 6: E2E Testing with Playwright
-
-```
-Set up end-to-end testing using Playwright in a /tests-e2e folder.
-
-Structure:
-- Dockerfile: Use mcr.microsoft.com/playwright as base
-- package.json with @playwright/test dependency
-- playwright.config.js pointing to http://ui:3000
-
-Add a test-runner service to docker-compose.yml that:
-- Depends on ui service
-- Mounts the tests-e2e folder
-- Uses the Playwright image
-
-Test cases (tests/elite-drive.spec.js):
-1. Visibility Test: Verify "THE COLLECTION" heading and car cards are visible
-2. API Integration Test: Verify Ferrari SF90 Stradale and $625,000 price appear
-3. Booking Flow Test: Click View Details → Select time slot → Request Reservation → Select customer → Confirm → See success message
-4. Responsiveness Test: On mobile viewport, verify navigation is still accessible
-
-Run with: docker compose run --rm test-runner npx playwright test
-
-If tests fail, analyze the error, fix the UI code, and re-run until all pass.
-```
-
----
-
-## QUICK START COMMANDS
-
-After all prompts are complete, use these commands:
-
-```bash
-# Build and start everything
-docker-compose up --build -d
-
-# Seed the database
-docker compose exec api python seed_db.py
-
-# Run API tests
-docker compose exec api python test_endpoints.py
-
-# Run E2E tests
-docker compose run --rm test-runner npx playwright test
-
-# View logs
-docker-compose logs -f api
-docker-compose logs -f ui
-```
-
----
-
-## TROUBLESHOOTING PROMPTS
-
-If something breaks, use these prompts:
-
-```
-The API is returning a 500 error on /cars. Check the MongoDB connection and fix it.
-```
-
-```
-The UI is not loading car images. Add placeholder images or fix the image URLs.
-```
-
-```
-The Playwright test "Booking Flow Test" is failing with selector not found. 
-Update the test selectors to match the actual UI elements.
-```
-
-```
-The booking modal is not closing after successful submission. 
-Add state management to close the modal and show a success toast.
-```
+Build this complete application following the architecture and requirements above. Create all necessary files, implement all features, and ensure all tests pass.
